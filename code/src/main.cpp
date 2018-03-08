@@ -14,6 +14,7 @@ extern void PhysicsCleanup();*/
 extern void GUI();
 
 extern void GLmousecb(MouseEvent ev);
+extern void travelling(MouseEvent ev);
 extern void GLResize(int width, int height);
 extern void GLinit(int width, int height);
 extern void GLcleanup();
@@ -96,7 +97,7 @@ int main(int argc, char** argv) {
 	// Setup ImGui binding
 	ImGui_ImplSdlGL3_Init(mainwindow);
 
-
+	
 
 	bool quit_app = false;
 	while (!quit_app) {
@@ -112,6 +113,9 @@ int main(int argc, char** argv) {
 			case SDL_QUIT:
 				quit_app = true;
 				break;
+			case SDL_MOUSEMOTION:
+				//rotateCamera();
+				break;
 			}
 		}
 		ImGui_ImplSdlGL3_NewFrame(mainwindow);
@@ -121,14 +125,15 @@ int main(int argc, char** argv) {
 		
 		GUI();
 		//PhysicsUpdate((float)expected_frametime);
-		if(!io.WantCaptureMouse) {
-			MouseEvent ev = {io.MousePos.x, io.MousePos.y, 
-				(io.MouseDown[0] ? MouseEvent::Button::Left : 
+		if (!io.WantCaptureMouse) {
+			MouseEvent ev = { io.MousePos.x, io.MousePos.y,
+				(io.MouseDown[0] ? MouseEvent::Button::Left :
 				(io.MouseDown[1] ? MouseEvent::Button::Right :
 				(io.MouseDown[2] ? MouseEvent::Button::Middle :
-				MouseEvent::Button::None)))};
+				MouseEvent::Button::None))) };
 			GLmousecb(ev);
 		}
+		
 
 
 		double currentTime = (double)SDL_GetTicks() / 1000.0;

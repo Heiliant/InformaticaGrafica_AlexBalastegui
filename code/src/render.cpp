@@ -9,7 +9,10 @@
 ///////// fw decl
 namespace ImGui {
 	void Render();
+
 }
+
+
 namespace Box {
 void setupCube();
 void cleanupCube();
@@ -20,12 +23,14 @@ void setupAxis();
 void cleanupAxis();
 void drawAxis();
 }
-
 namespace Cube {
 	void setupCube();
 	void cleanupCube();
 	void updateCube(const glm::mat4& transform);
 	void drawCube();
+	void draw2Cubes(double currentTime);
+
+	void updateColor(const glm::vec4 newColor);
 }
 
 namespace MyFirstShader {
@@ -37,8 +42,14 @@ namespace MyFirstShader {
 	GLuint myVAO;
 }
 
-
-
+//namespace MyFirstShader {
+//	void  myInitCode(void);
+//	GLuint myShaderCompile(void);
+//
+//	void myCleanupCode(void);
+//	void myRenderCode(double currentTime);
+//
+//}
 
 ////////////////
 
@@ -104,21 +115,16 @@ void GLinit(int width, int height) {
 	glEnable(GL_DEPTH_TEST);
 	glEnable(GL_CULL_FACE);
 
+	float aux = 50;
 	RV::_projection = glm::perspective(RV::FOV, (float)width/(float)height, RV::zNear, RV::zFar);
+	//RV::_projection = glm::ortho((float)-width/aux, (float)width / aux, (float)-height / aux, (float)height / aux, 0.1f, 100.0f);
 
 	// Setup shaders & geometry
 	/*Box::setupCube();
 	Axis::setupAxis();
-	Cube::setupCube();*/
-
-
-
-
-
-
-
-
-
+	Cube::setupCube();
+	*/
+	MyFirstShader::myInitCode();
 
 }
 
@@ -126,37 +132,31 @@ void GLcleanup() {
 	/*Box::cleanupCube();
 	Axis::cleanupAxis();
 	Cube::cleanupCube();
-*/
-
+	*/
+	MyFirstShader::myCleanupCode();
 
 }
 
 void GLrender(double currentTime) {
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-	RV::_modelView = glm::mat4(1.f);
+	RV::_modelView = {  1.f, 0.f,  0.f, 0.f,
+						0.f, 1.f, 0.f, 0.f,
+						0.f, 0.f, 1.f, 0.f,
+						0.f, 0.f, 0.f, 1.f};
 	RV::_modelView = glm::translate(RV::_modelView, glm::vec3(RV::panv[0], RV::panv[1], RV::panv[2]));
 	RV::_modelView = glm::rotate(RV::_modelView, RV::rota[1], glm::vec3(1.f, 0.f, 0.f));
 	RV::_modelView = glm::rotate(RV::_modelView, RV::rota[0], glm::vec3(0.f, 1.f, 0.f));
 
 	RV::_MVP = RV::_projection * RV::_modelView;
 
+
 	// render code
 	/*Box::drawCube();
 	Axis::drawAxis();
-	Cube::drawCube();*/
-
-	
-
-	float currentRed, currentGreen, currentBlue;
-	currentRed= sin(currentTime*0.1)*0.5+0.5;
-	currentBlue = cos(currentTime*0.1)*0.5 + 0.5;
-	currentGreen = tan(currentTime);
-	
-
-	const GLfloat red[] = { currentRed, currentBlue, 0, 1.f};
-	glClearBufferfv(GL_COLOR, 0, red);
-
+	Cube::draw2Cubes(currentTime);
+	*/
+	MyFirstShader::myRenderCode(currentTime);
 
 	ImGui::Render();
 }
@@ -194,6 +194,113 @@ void linkProgram(GLuint program) {
 }
 
 ////////////////////////////////////////////////// BOX
+
+namespace MyFirstShader {
+	
+	///declaration
+
+	/////////////////my first shader
+
+	GLuint myShaderCompile(void) {
+		static const GLchar * vertex_shader_source[] =
+		{
+			"#version 330										\n\
+	\n\
+	void main() {\n\
+	const vec4 vertices[3] = vec4[3](vec4( 0.25, -0.25, 0.5, 1.0),\n\
+									vec4(0.25, 0.25, 0.5, 1.0),\n\
+									vec4( -0.25,  -0.25, 0.5, 1.0));\n\
+	gl_Position = vertices[gl_VertexID];\n\
+	}"
+		};
+		static const GLchar * fragment_shader_source[] =
+		{
+			"#version 330\n\
+	\n\
+	out vec4 color;\n\
+	\n\
+	void main() {\n\
+	color = vec4(0.0,0.8,1.0,1.0);\n\
+	}"
+		};
+
+		static const GLchar * geom_shader_source[] = {
+			"#version 330\n\
+	layout(triangles) in;\n\
+	uniform float time; \n\
+	layout(triangle_strip, max_vertices = 6) out;\n\
+	const vec4 vertices[3] = vec4[3](vec4(0.25, -0.25, 0.5, 1.0), \n\
+									vec4(0.25, -0.25, 0.5, 1.0), \n\
+									vec4(0.25, -0.25, 0.5, 1.0)); \n\
+	void main(){\n\
+	\n\
+		for(int i=0; i<3; ++i){\n\
+				gl_Position = gl_in[i].gl_Position+vec4(sin(time), 0, 0, 1.0);\n\
+			EmitVertex();\n\
+		}\n\
+		EndPrimitive();\n\
+		for(int i=0; i<3; ++i){\n\
+				gl_Position = gl_in[i].gl_Position+vec4(0.25+sin(time), 0, sin(time), 1.0);\n\
+			EmitVertex();\n\
+		}\n\
+		EndPrimitive();\n\
+	}"
+		};
+		
+		GLuint vertex_shader;
+		GLuint geom_shader;
+		GLuint fragment_shader;
+		GLuint program;
+
+		vertex_shader = glCreateShader(GL_VERTEX_SHADER);
+		glShaderSource(vertex_shader, 1, vertex_shader_source, NULL);
+		glCompileShader(vertex_shader);
+
+		geom_shader = glCreateShader(GL_GEOMETRY_SHADER);
+		glShaderSource(geom_shader, 1, geom_shader_source, NULL);
+		glCompileShader(geom_shader);
+
+		geom_shader = glCreateShader(GL_GEOMETRY_SHADER);
+		glShaderSource(geom_shader, 1, geom_shader_source, NULL);
+		glCompileShader(geom_shader);
+
+		fragment_shader = glCreateShader(GL_FRAGMENT_SHADER);
+		glShaderSource(fragment_shader, 1, fragment_shader_source, NULL);
+		glCompileShader(fragment_shader);
+
+		program = glCreateProgram();
+		glAttachShader(program, vertex_shader);
+		glAttachShader(program, geom_shader);
+		glAttachShader(program, fragment_shader);
+		glLinkProgram(program);
+
+		glDeleteShader(geom_shader);
+		glDeleteShader(vertex_shader);
+		glDeleteShader(fragment_shader);
+
+		return program;
+	}
+
+	void  myInitCode(void) {
+		myRenderProgram = myShaderCompile();
+		glCreateVertexArrays(1, &myVAO);
+		glBindVertexArray(myVAO);
+	}
+
+	void myRenderCode(double currentTime) {
+
+		glUseProgram(myRenderProgram);
+		glUniform1f(glGetUniformLocation(myRenderProgram, "time"), static_cast<GLfloat>(currentTime));
+		glDrawArrays(GL_TRIANGLES, 0, 3);
+	}
+
+	void myCleanupCode() {
+		glDeleteVertexArrays(1, &myVAO);
+		glDeleteProgram(myRenderProgram);
+	}
+	
+}
+
 namespace Box{
 GLuint cubeVao;
 GLuint cubeVbo[2];
@@ -863,6 +970,8 @@ namespace Cube {
 	GLuint cubeProgram;
 	glm::mat4 objMat = glm::mat4(1.f);
 
+	glm::vec4 myColor = { 0.f, 0.5f, 1.0f, 1.0f };
+
 	extern const float halfW = 0.5f;
 	int numVerts = 24 + 6; // 4 vertex/face * 6 faces + 6 PRIMITIVE RESTART
 
@@ -936,12 +1045,12 @@ namespace Cube {
 
 
 	const char* cube_fragShader =
-		"#version 330\n\
-in vec4 vert_Normal;\n\
-out vec4 out_Color;\n\
-uniform mat4 mv_Mat;\n\
-uniform vec4 color;\n\
-void main() {\n\
+	"#version 330\n\
+	in vec4 vert_Normal;\n\
+	out vec4 out_Color;\n\
+	uniform mat4 mv_Mat;\n\
+	uniform vec4 color;\n\
+	void main() {\n\
 	out_Color = vec4(color.xyz * dot(vert_Normal, mv_Mat*vec4(0.0, 1.0, 0.0, 0.0)) + color.xyz * 0.3, 1.0 );\n\
 }";
 	void setupCube() {
@@ -1002,17 +1111,157 @@ void main() {\n\
 		glBindVertexArray(0);
 		glDisable(GL_PRIMITIVE_RESTART);
 	}
+	void draw2Cubes(double currentTime) {
+		glEnable(GL_PRIMITIVE_RESTART);
+		glBindVertexArray(cubeVao);
+		glUseProgram(cubeProgram);
 
+		float time = 0;
+		time = currentTime*2;
+		float timeS = (glm::sin(time * 5) + 1) / 2;
+		float timeC = (glm::cos(time*3) + 1.7) / 2;
+
+		glm::mat4 tTrans = glm::scale(glm::mat4(1.f), glm::vec3(0.f + timeC, 0.f + timeC, 0.f + timeC));
+
+		glm::mat4 tRot = glm::rotate(glm::mat4(1.f), (float)currentTime, glm::vec3(0.f, 1.f, 0.f));
+
+		float timeDec = time - (int)time;
+		int timeInt = (int)time;
+
+		//RV::_projection = glm::ortho(((float)-500 / 50)+timeInt%5+timeDec, ((float)500 / 50)+timeInt%5+timeDec, (float)-500 / 50, (float)500 / 50, 0.1f, 100.0f);
+		//RV::_projection = glm::ortho(((float)-500 / 50), ((float)500 / 50), ((float)-500 / 50 - (timeInt % 5 + timeDec)), (float)500 / 50-(timeInt%5+timeDec), 0.1f, 100.0f);
+
+
+		glm::mat4 tOne = glm::translate(glm::mat4(1.f), glm::vec3(0.f, (float)(timeInt%5)+timeDec, 0.f));
+
+		//objMat = tRot* tTrans*tOne;
+		objMat = tOne;
+
+		glm::vec4 newColorOne = {0.f, 0.f, 1.f, 1.f};
+		Cube::updateColor(newColorOne);
+
+		glUniformMatrix4fv(glGetUniformLocation(cubeProgram, "objMat"), 1, GL_FALSE, glm::value_ptr(objMat));
+		glUniformMatrix4fv(glGetUniformLocation(cubeProgram, "mv_Mat"), 1, GL_FALSE, glm::value_ptr(RenderVars::_modelView));
+		glUniformMatrix4fv(glGetUniformLocation(cubeProgram, "mvpMat"), 1, GL_FALSE, glm::value_ptr(RenderVars::_MVP));
+		glUniform4f(glGetUniformLocation(cubeProgram, "color"), myColor.r, myColor.g, myColor.b, myColor.a);
+		glDrawElements(GL_TRIANGLE_STRIP, numVerts, GL_UNSIGNED_BYTE, 0);
+
+		glBindVertexArray(cubeVao);
+		glUseProgram(cubeProgram);
+
+		////////////////////////////////////1
+
+
+		
+
+		/*for (int i = 0; i < 5; ++i) {
+			glm::mat4 tScale = glm::scale(glm::mat4(1.f), glm::vec3(0.f + timeC, 0.f + timeC, 0.f + timeC));
+			glm::mat4 tRot = glm::rotate(glm::mat4(1.f), (float)currentTime, glm::vec3(0.f, 1.f, 0.f));
+			glm::mat4 tTrans = glm::translate(glm::mat4(1.f), glm::vec3(0.f, i+2.f + timeC, 0.f));
+			objMat = tRot* tScale*tTrans;
+
+			glm::vec4 newColorTwo = { timeC, 1.f, 1.f, 1.f };
+			Cube::updateColor(newColorTwo);
+
+			glUniformMatrix4fv(glGetUniformLocation(cubeProgram, "objMat"), 1, GL_FALSE, glm::value_ptr(objMat));
+			glUniform4f(glGetUniformLocation(cubeProgram, "color"), myColor.r, myColor.g, myColor.b, myColor.a);
+			glDrawElements(GL_TRIANGLE_STRIP, numVerts, GL_UNSIGNED_BYTE, 0);
+		}
+
+		for (int i = 0; i < 5; ++i) {
+			glm::mat4 tScale = glm::scale(glm::mat4(1.f), glm::vec3(0.f + timeC, 0.f + timeC, 0.f + timeC));
+			glm::mat4 tRot = glm::rotate(glm::mat4(1.f), (float)currentTime, glm::vec3(0.f, 1.f, 0.f));
+			glm::mat4 tTrans = glm::translate(glm::mat4(1.f), glm::vec3(i-2.f, 5.f + timeC, 0.f));
+			objMat = tRot* tScale*tTrans;
+
+			glm::vec4 newColorTwo = { timeC, 1.f, 1.f, 1.f };
+			Cube::updateColor(newColorTwo);
+
+			glUniformMatrix4fv(glGetUniformLocation(cubeProgram, "objMat"), 1, GL_FALSE, glm::value_ptr(objMat));
+			glUniform4f(glGetUniformLocation(cubeProgram, "color"), myColor.r, myColor.g, myColor.b, myColor.a);
+			glDrawElements(GL_TRIANGLE_STRIP, numVerts, GL_UNSIGNED_BYTE, 0);
+		}*/
+		/*{
+			glm::mat4 tTrans = glm::scale(glm::mat4(1.f), glm::vec3(0.f + timeC, 0.f + timeC, 0.f + timeC));
+			glm::mat4 tRot = glm::rotate(glm::mat4(1.f), (float)currentTime, glm::vec3(0.f, 1.f, 0.f));
+			glm::mat4 tTwo = glm::translate(glm::mat4(1.f), glm::vec3(1.f, 6.f + timeC, 0.f));
+			objMat = tRot* tTrans*tTwo;
+
+			glm::vec4 newColorTwo = { timeS, 0.f, 0.f, 1.f };
+			Cube::updateColor(newColorTwo);
+
+			glUniformMatrix4fv(glGetUniformLocation(cubeProgram, "objMat"), 1, GL_FALSE, glm::value_ptr(objMat));
+			glUniform4f(glGetUniformLocation(cubeProgram, "color"), myColor.r, myColor.g, myColor.b, myColor.a);
+			glDrawElements(GL_TRIANGLE_STRIP, numVerts, GL_UNSIGNED_BYTE, 0);
+		}
+		{
+			glm::mat4 tTrans = glm::scale(glm::mat4(1.f), glm::vec3(0.f + timeC, 0.f + timeC, 0.f + timeC));
+			glm::mat4 tRot = glm::rotate(glm::mat4(1.f), (float)currentTime, glm::vec3(0.f, 1.f, 0.f));
+			glm::mat4 tTwo = glm::translate(glm::mat4(1.f), glm::vec3(-1.f, 2.f + timeC, 0.f));
+			objMat = tRot* tTrans*tTwo;
+
+			glm::vec4 newColorTwo = { timeS, 0.f, 0.f, 1.f };
+			Cube::updateColor(newColorTwo);
+
+			glUniformMatrix4fv(glGetUniformLocation(cubeProgram, "objMat"), 1, GL_FALSE, glm::value_ptr(objMat));
+			glUniform4f(glGetUniformLocation(cubeProgram, "color"), myColor.r, myColor.g, myColor.b, myColor.a);
+			glDrawElements(GL_TRIANGLE_STRIP, numVerts, GL_UNSIGNED_BYTE, 0);
+		}
+		{
+			glm::mat4 tTrans = glm::scale(glm::mat4(1.f), glm::vec3(0.f + timeC, 0.f + timeC, 0.f + timeC));
+			glm::mat4 tRot = glm::rotate(glm::mat4(1.f), (float)currentTime, glm::vec3(0.f, 1.f, 0.f));
+			glm::mat4 tTwo = glm::translate(glm::mat4(1.f), glm::vec3(2.f, 3.f + timeC, 0.f));
+			objMat = tRot* tTrans*tTwo;
+
+			glm::vec4 newColorTwo = { timeS, 0.f, 0.f, 1.f };
+			Cube::updateColor(newColorTwo);
+
+			glUniformMatrix4fv(glGetUniformLocation(cubeProgram, "objMat"), 1, GL_FALSE, glm::value_ptr(objMat));
+			glUniform4f(glGetUniformLocation(cubeProgram, "color"), myColor.r, myColor.g, myColor.b, myColor.a);
+			glDrawElements(GL_TRIANGLE_STRIP, numVerts, GL_UNSIGNED_BYTE, 0);
+		}
+		{
+			glm::mat4 tTrans = glm::scale(glm::mat4(1.f), glm::vec3(0.f + timeC, 0.f + timeC, 0.f + timeC));
+			glm::mat4 tRot = glm::rotate(glm::mat4(1.f), (float)currentTime, glm::vec3(0.f, 1.f, 0.f));
+			glm::mat4 tTwo = glm::translate(glm::mat4(1.f), glm::vec3(-2.f, 5.f + timeC, 0.f));
+			objMat = tRot* tTrans*tTwo;
+
+			glm::vec4 newColorTwo = { timeS, 0.f, 0.f, 1.f };
+			Cube::updateColor(newColorTwo);
+
+			glUniformMatrix4fv(glGetUniformLocation(cubeProgram, "objMat"), 1, GL_FALSE, glm::value_ptr(objMat));
+			glUniform4f(glGetUniformLocation(cubeProgram, "color"), myColor.r, myColor.g, myColor.b, myColor.a);
+			glDrawElements(GL_TRIANGLE_STRIP, numVerts, GL_UNSIGNED_BYTE, 0);
+		}*/
+	}
+
+	void updateColor(const glm::vec4 newColor) {
+		myColor = newColor;
+	}
 
 }
-
+/*
 namespace MyFirstShader{
 	//1 Declare shader
 	static const GLchar * vertex_shader_source[] = {
 		"#version 330\n\
 		\n\
 		void main(){\n\
-		gl_Position = vec4(0.0, 0.0, 0.5, 1.0);\n\
+		const vec4 vertices[3] = vec4[3](vec4(0.25, -0.25, 0.5, 1.0),\n\
+										 vec4(0.0, 0.25, 0.5, 1.0),\n\
+										 vec4(-0.25, -0.25, 0.5, 1.0));\n\
+		gl_Position = vertices[gl_VertexID];\n\
+		}"
+	};
+
+	static const GLchar * vertex_shader_source_little[] = {
+		"#version 330\n\
+		\n\
+		void main(){\n\
+		const vec4 vertices[3] = vec4[3](vec4(0.125, 0.125, 0.5, 1.0),\n\
+										 vec4(-0.125, 0.125, 0.5, 1.0),\n\
+										 vec4(0.0, -0.125, 0.5, 1.0));\n\
+		gl_Position = vertices[gl_VertexID];\n\
 		}"
 	};
 
@@ -1021,7 +1270,16 @@ namespace MyFirstShader{
 		\n\
 		out vec4 color; \n\
 		void main(){\n\
-		color = vec4(0.0, 0.8, 1.0, 1.0);\n\
+		color = vec4(0.8, 0.3, 1.0, 1.0);\n\
+		}"
+	};
+
+	static const GLchar * fragment_shader_source_little[] = {
+		"#version 330\n\
+		\n\
+		out vec4 color; \n\
+		void main(){\n\
+		color = vec4(1.0, 0.3, 0.25, 1.0);\n\
 		}"
 	};
 
@@ -1041,24 +1299,40 @@ namespace MyFirstShader{
 		program = glCreateProgram();
 		glAttachShader(program, vertex_shader);
 		glAttachShader(program, fragment_shader);
-		glLinkProgram(program);
-
+	
 		glDeleteShader(vertex_shader);
 		glDeleteShader(fragment_shader);
+
+		glLinkProgram(program);
 		
-		return(program);
+		return program;
 	}
 	//3	init shader
 	void myInitCode(void) {
-
+		myRenderProgram = myShaderCompile();
+		glCreateVertexArrays(1, &myVAO);
+		glBindVertexArray(myVAO);
 	}
 	//4	render shader
 	void myRenderCode(double currentTime) {
+		float currentRed, currentGreen, currentBlue;
+		currentRed = sin(currentTime*0.1)*0.5 + 0.5;
+		currentBlue = cos(currentTime*0.1)*0.5 + 0.5;
+		currentGreen = tan(currentTime);
 
+
+		const GLfloat red[] = { currentRed, currentBlue, 0, 1.f };
+		glClearBufferfv(GL_COLOR, 0, red);
+
+		glUseProgram(myRenderProgram);
+		glPointSize(20);
+		glDrawArrays(GL_TRIANGLES, 0, 3);
 	}
 	//5	Cleanupshader
 	void myCleanupCode(void) {
-
+		glDeleteVertexArrays(1, &myVAO);
+		glDeleteProgram(myRenderProgram);
+		
 	}
 }
-
+*/
