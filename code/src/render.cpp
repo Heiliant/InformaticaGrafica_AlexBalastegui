@@ -207,7 +207,7 @@ namespace MyFirstShader {
 			"#version 330										\n\
 	\n\
 	void main() {\n\
-	const vec4 vertices[3] = vec4[3](vec4( 0.25, -0.25, 0.5, 1.0),\n\
+	const vec4 vertices[3] = vec4[3](vec4( 0, 0, 0, 1.0),\n\
 									vec4(0.25, 0.25, 0.5, 1.0),\n\
 									vec4( -0.25,  -0.25, 0.5, 1.0));\n\
 	gl_Position = vertices[gl_VertexID];\n\
@@ -220,7 +220,8 @@ namespace MyFirstShader {
 	out vec4 color;\n\
 	\n\
 	void main() {\n\
-	color = vec4(0.0,0.8,1.0,1.0);\n\
+	color = vec4(1.0,0.8,0.0,1.0);\n\
+	color = vec4(0.0,0.8,0.0,1.0);\n\
 	}"
 		};
 
@@ -228,21 +229,38 @@ namespace MyFirstShader {
 			"#version 330\n\
 	layout(triangles) in;\n\
 	uniform float time; \n\
-	layout(triangle_strip, max_vertices = 6) out;\n\
-	const vec4 vertices[3] = vec4[3](vec4(0.25, -0.25, 0.5, 1.0), \n\
-									vec4(0.25, -0.25, 0.5, 1.0), \n\
-									vec4(0.25, -0.25, 0.5, 1.0)); \n\
+	uniform float fPosX;\n\
+	uniform float fPosY;\n\
+	uniform float fPosZ;\n\
+	uniform float fPosW;\n\
+	float velX=0;\n\
+	float velY=0;\n\
+	float velZ=1;\n\
+	layout(triangle_strip, max_vertices = 8) out;\n\
+	float offset=1;\n\
+	float rotSp=1;\n\
 	void main(){\n\
 	\n\
-		for(int i=0; i<3; ++i){\n\
-				gl_Position = gl_in[i].gl_Position+vec4(sin(time), 0, 0, 1.0);\n\
-			EmitVertex();\n\
-		}\n\
+			gl_Position = vec4(fPosX, fPosY, fPosZ, fPosW)+vec4(-offset+sin(time+rotSp), -offset, 0, 1.0);\n\
+		EmitVertex();\n\
+			gl_Position = vec4(fPosX, fPosY, fPosZ, fPosW)+vec4(offset+sin(time-rotSp), -offset, 0, 1.0);\n\
+		EmitVertex();\n\
+			gl_Position = vec4(fPosX, fPosY, fPosZ, fPosW)+vec4(-offset+sin(time+rotSp), offset, 0, 1.0);\n\
+		EmitVertex();\n\
+			gl_Position = vec4(fPosX, fPosY, fPosZ, fPosW)+vec4(offset+sin(time-rotSp), offset, 0, 1.0);\n\
+		EmitVertex();\n\
+	\n\
 		EndPrimitive();\n\
-		for(int i=0; i<3; ++i){\n\
-				gl_Position = gl_in[i].gl_Position+vec4(0.25+sin(time), 0, sin(time), 1.0);\n\
-			EmitVertex();\n\
-		}\n\
+	\n\
+			gl_Position = vec4(fPosX, fPosY, fPosZ, fPosW) + vec4(offset + sin(time - rotSp), offset, 1, 1.0); \n\
+		EmitVertex(); \n\
+			gl_Position = vec4(fPosX, fPosY, fPosZ, fPosW) + vec4(-offset+sin(time + rotSp), offset, -1, 1.0); \n\
+		EmitVertex(); \n\
+			gl_Position = vec4(fPosX, fPosY, fPosZ, fPosW) + vec4(offset + sin(time - rotSp), -offset, -1, 1.0); \n\
+		EmitVertex(); \n\
+			gl_Position = vec4(fPosX, fPosY, fPosZ, fPosW) + vec4(-offset+sin(time + rotSp), -offset, -1, 1.0); \n\
+		EmitVertex(); \n\
+	\n\
 		EndPrimitive();\n\
 	}"
 		};
@@ -255,10 +273,6 @@ namespace MyFirstShader {
 		vertex_shader = glCreateShader(GL_VERTEX_SHADER);
 		glShaderSource(vertex_shader, 1, vertex_shader_source, NULL);
 		glCompileShader(vertex_shader);
-
-		geom_shader = glCreateShader(GL_GEOMETRY_SHADER);
-		glShaderSource(geom_shader, 1, geom_shader_source, NULL);
-		glCompileShader(geom_shader);
 
 		geom_shader = glCreateShader(GL_GEOMETRY_SHADER);
 		glShaderSource(geom_shader, 1, geom_shader_source, NULL);
@@ -281,7 +295,7 @@ namespace MyFirstShader {
 		return program;
 	}
 
-	void  myInitCode(void) {
+	void myInitCode(void) {
 		myRenderProgram = myShaderCompile();
 		glCreateVertexArrays(1, &myVAO);
 		glBindVertexArray(myVAO);
@@ -289,8 +303,13 @@ namespace MyFirstShader {
 
 	void myRenderCode(double currentTime) {
 
+		glm::vec4 fPos{ 0, 0, 0, 1 };
 		glUseProgram(myRenderProgram);
 		glUniform1f(glGetUniformLocation(myRenderProgram, "time"), static_cast<GLfloat>(currentTime));
+		glUniform1f(glGetUniformLocation(myRenderProgram, "fPosX"), static_cast<GLfloat>(fPos.x));
+		glUniform1f(glGetUniformLocation(myRenderProgram, "fPosY"), static_cast<GLfloat>(fPos.y));
+		glUniform1f(glGetUniformLocation(myRenderProgram, "fPosZ"), static_cast<GLfloat>(fPos.z));
+		glUniform1f(glGetUniformLocation(myRenderProgram, "fPosW"), static_cast<GLfloat>(fPos.w));
 		glDrawArrays(GL_TRIANGLES, 0, 3);
 	}
 
