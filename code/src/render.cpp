@@ -3,6 +3,7 @@
 #include <glm\gtc\matrix_transform.hpp>
 #include <cstdio>
 #include <cassert>
+#include <iostream>
 
 #include "GL_framework.h"
 
@@ -228,6 +229,111 @@ namespace MyFirstShader {
 		static const GLchar * geom_shader_source[] = {
 			"#version 330\n\
 	layout(triangles) in;\n\
+	uniform float fPosX;\n\
+	uniform float fPosY;\n\
+	uniform float fPosZ;\n\
+	uniform float fPosW;\n\
+	uniform mat4 matrix;\n\
+	float velX=0;\n\
+	float velY=0;\n\
+	float velZ=1;\n\
+	float offset=0.2;\n\
+	float rotSp=0;\n\
+	layout(triangle_strip, max_vertices = 24) out;\n\
+	\n\
+	void main(){\n\
+	\n\
+	//FRONT\n\
+	vec4 verticesF[4]=vec4[4](vec4(offset, -offset, -offset, 1.0),\n\
+							vec4(offset, offset, -offset, 1.0),\n\
+							vec4(-offset, -offset, -offset, 1.0),\n\
+							vec4(-offset, +offset, -offset, 1.0));\n\
+	for (int i = 0; i<4; i++){\n\
+		gl_Position = (vec4(fPosX, fPosY, fPosZ, fPosW)+((verticesF[i]))*matrix);\n\
+		EmitVertex();\n\
+	}\n\
+	EndPrimitive();\n\
+	\n\
+	//BACK\n\
+	vec4 verticesB[4]=vec4[4](vec4(-offset, -offset, offset, 1.0),\n\
+							vec4(-offset, offset, offset, 1.0),\n\
+							vec4(offset, -offset, offset, 1.0),\n\
+							vec4(offset, offset, offset, 1.0));\n\
+	for (int i = 0; i<4; i++){\n\
+		gl_Position = (vec4(fPosX, fPosY, fPosZ, fPosW)+((verticesB[i]))*matrix);\n\
+		EmitVertex();\n\
+	}\n\
+	EndPrimitive();\n\
+	\n\
+	//LEFT\n\
+	vec4 verticesL[4]=vec4[4](vec4(-offset, -offset, -offset, 1.0),\n\
+							vec4(-offset, offset, -offset, 1.0),\n\
+							vec4(-offset, -offset, offset, 1.0),\n\
+							vec4(-offset, offset, offset, 1.0));\n\
+	for (int i = 0; i<4; i++){\n\
+		gl_Position = (vec4(fPosX, fPosY, fPosZ, fPosW)+((verticesL[i]))*matrix);\n\
+		EmitVertex();\n\
+	}\n\
+	EndPrimitive();\n\
+	\n\
+	//RIGHT\n\
+	vec4 verticesR[4]=vec4[4](vec4(offset, -offset, offset, 1.0),\n\
+							vec4(offset, offset, offset, 1.0),\n\
+							vec4(offset, -offset, -offset, 1.0),\n\
+							vec4(offset, offset, -offset, 1.0));\n\
+	for (int i = 0; i<4; i++){\n\
+		gl_Position = (vec4(fPosX, fPosY, fPosZ, fPosW)+((verticesR[i]))*matrix);\n\
+		EmitVertex();\n\
+	}\n\
+	EndPrimitive();\n\
+	\n\
+	//TOP\n\
+	vec4 verticesT[4]=vec4[4](vec4(offset, offset, -offset, 1.0),\n\
+							vec4(offset, offset, offset, 1.0),\n\
+							vec4(-offset, offset, -offset, 1.0),\n\
+							vec4(-offset, offset, offset, 1.0));\n\
+	for (int i = 0; i<4; i++){\n\
+		gl_Position = (vec4(fPosX, fPosY, fPosZ, fPosW)+((verticesT[i]))*matrix);\n\
+		EmitVertex();\n\
+	}\n\
+	EndPrimitive();\n\
+	\n\
+	//DOWN\n\
+	vec4 verticesD[4]=vec4[4](vec4(offset, -offset, offset, 1.0),\n\
+							vec4(offset, -offset, -offset, 1.0),\n\
+							vec4(-offset, -offset, offset, 1.0),\n\
+							vec4(-offset, -offset, -offset, 1.0));\n\
+	for (int i = 0; i<4; i++){\n\
+		gl_Position = (vec4(fPosX, fPosY, fPosZ, fPosW)+((verticesD[i]))*matrix);\n\
+		EmitVertex();\n\
+	}\n\
+	EndPrimitive();\n\
+	\n\
+	}"
+		};
+
+		{/*gl_Position = vec4(fPosX, fPosY, fPosZ, fPosW) + vec4(-offset*sin(time + rotSp), offset, 0, 1.0); \n\
+			EmitVertex(); \n\
+			gl_Position = vec4(fPosX, fPosY, fPosZ, fPosW) + vec4(offset*sin(time - rotSp), offset, 0, 1.0); \n\
+			EmitVertex(); \n\
+			gl_Position = vec4(fPosX, fPosY, fPosZ, fPosW) + vec4(offset*sin(time - rotSp), -offset, 0, 1.0); \n\
+			EmitVertex(); \n\
+			\n\
+			EndPrimitive(); \n\
+			\n\
+			gl_Position = vec4(fPosX, fPosY, fPosZ, fPosW) + vec4(offset*sin(time - rotSp), -offset, 0, 1.0); \n\
+			EmitVertex(); \n\
+			gl_Position = vec4(fPosX, fPosY, fPosZ, fPosW) + vec4(-offset*sin(time + rotSp), -offset, 0, 1.0); \n\
+			EmitVertex(); \n\
+			gl_Position = vec4(fPosX, fPosY, fPosZ, fPosW) + vec4(-offset*sin(time + rotSp), offset, 0, 1.0); \n\
+			EmitVertex(); \n\
+			\n\
+			EndPrimitive(); \n\*/
+		} //esto va en el geometry shader si la cago
+		
+		{
+			/*"#version 330\n\
+	layout(triangles) in;\n\
 	uniform float time; \n\
 	uniform float fPosX;\n\
 	uniform float fPosY;\n\
@@ -236,35 +342,25 @@ namespace MyFirstShader {
 	float velX=0;\n\
 	float velY=0;\n\
 	float velZ=1;\n\
-	layout(triangle_strip, max_vertices = 8) out;\n\
 	float offset=1;\n\
-	float rotSp=1;\n\
+	float rotSp=0;\n\
+	vec4 vertices[4];\n\
+	vertices[0] = vec4(offset, -offset, fPosZ, 1.0);\n\
+	vertices[1] = vec4(offset, +offset, fPosZ, 1.0),\n\
+	vertices[2] = vec4(-offset, +offset, fPosZ, 1.0),\n\
+	vertices[3] = vec4(-offset, -offset, fPosZ, 1.0)};\n\
+	\n\
+	layout(triangle_strip, max_vertices = 4) out;\n\
 	void main(){\n\
-	\n\
-			gl_Position = vec4(fPosX, fPosY, fPosZ, fPosW)+vec4(-offset+sin(time+rotSp), -offset, 0, 1.0);\n\
+	for (int i = 0; i<4; i++){\n\
+		gl_Position = vec4(fPosX, fPosY, fPosZ, fPosW)+vertices[i];\n\
 		EmitVertex();\n\
-			gl_Position = vec4(fPosX, fPosY, fPosZ, fPosW)+vec4(offset+sin(time-rotSp), -offset, 0, 1.0);\n\
-		EmitVertex();\n\
-			gl_Position = vec4(fPosX, fPosY, fPosZ, fPosW)+vec4(-offset+sin(time+rotSp), offset, 0, 1.0);\n\
-		EmitVertex();\n\
-			gl_Position = vec4(fPosX, fPosY, fPosZ, fPosW)+vec4(offset+sin(time-rotSp), offset, 0, 1.0);\n\
-		EmitVertex();\n\
+	}\n\
+	EndPrimitive();\n\
 	\n\
-		EndPrimitive();\n\
-	\n\
-			gl_Position = vec4(fPosX, fPosY, fPosZ, fPosW) + vec4(offset + sin(time - rotSp), offset, 1, 1.0); \n\
-		EmitVertex(); \n\
-			gl_Position = vec4(fPosX, fPosY, fPosZ, fPosW) + vec4(-offset+sin(time + rotSp), offset, -1, 1.0); \n\
-		EmitVertex(); \n\
-			gl_Position = vec4(fPosX, fPosY, fPosZ, fPosW) + vec4(offset + sin(time - rotSp), -offset, -1, 1.0); \n\
-		EmitVertex(); \n\
-			gl_Position = vec4(fPosX, fPosY, fPosZ, fPosW) + vec4(-offset+sin(time + rotSp), -offset, -1, 1.0); \n\
-		EmitVertex(); \n\
-	\n\
-		EndPrimitive();\n\
-	}"
-		};
-		
+	}"*/
+		}
+
 		GLuint vertex_shader;
 		GLuint geom_shader;
 		GLuint fragment_shader;
@@ -302,9 +398,19 @@ namespace MyFirstShader {
 	}
 
 	void myRenderCode(double currentTime) {
-
-		glm::vec4 fPos{ 0, 0, 0, 1 };
+		float rotSp = 0;
+		std::cout << "sin: " << glm::sin(currentTime) << "      cos: " << glm::cos(currentTime) << std::endl;
+		glm::vec4 fPos{ 0, 0, 1, 1 };
 		glUseProgram(myRenderProgram);
+		glm::mat4 matrix{ glm::cos(currentTime), 0, -glm::sin(currentTime ), 0,
+						  0, 1, 0, 0,
+						  glm::sin(currentTime ), 0, glm::cos(currentTime), 0,
+						  0, 0, 0, 1 };
+		/*matrix*=glm::mat4{	1, 0, 0, 0,
+							0, glm::cos(currentTime), -glm::sin(currentTime), 0,
+							0, glm::sin(currentTime), glm::cos(currentTime), 0,
+							0, 0, 0, 1 };*/
+		glUniformMatrix4fv(glGetUniformLocation(myRenderProgram, "matrix"), 1, GL_FALSE, glm::value_ptr(RV::_MVP));
 		glUniform1f(glGetUniformLocation(myRenderProgram, "time"), static_cast<GLfloat>(currentTime));
 		glUniform1f(glGetUniformLocation(myRenderProgram, "fPosX"), static_cast<GLfloat>(fPos.x));
 		glUniform1f(glGetUniformLocation(myRenderProgram, "fPosY"), static_cast<GLfloat>(fPos.y));
